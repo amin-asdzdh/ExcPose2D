@@ -3,9 +3,9 @@ import numpy as np
 import torch
 from torchvision.transforms import transforms
 
-from models.hrnet import HRNet
-from models.poseresnet import PoseResNet
-from models.detectors.YOLOv3 import YOLOv3
+from hrnet import HRNet
+from poseresnet import PoseResNet
+from detectors.YOLOv3 import YOLOv3
 
 
 class SimpleHRNet:
