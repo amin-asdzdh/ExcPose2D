@@ -30,8 +30,8 @@ sys.argv = ['train_colab',
             '--image_resolution', '(384, 288)',
             '--lr', '0.00001',
             '--batch_size', '8',
-            '--train_dataset_dir', '/content/drive/My Drive/Colab Notebooks/My Projects/Excavator_Pose_Estimation/datasets/RealExcavators_Augmented/train',
-            '--val_dataset_dir', '/content/drive/My Drive/Colab Notebooks/My Projects/Excavator_Pose_Estimation/datasets/RealExcavators_Augmented/val'
+            '--train_dataset_dir', './datasets/FDR_1k/train',
+            '--val_dataset_dir', './datasets/FDR_1k/val'
             ]
 
 

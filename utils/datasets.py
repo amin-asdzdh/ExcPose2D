@@ -1,29 +1,29 @@
-# imports
-
 import os
-import random
+import sys
+from pathlib import Path
+FILE = Path(__file__).absolute()
+sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
 
+import random
 import cv2
+import torch
 import numpy as np
 import pandas as pd
 
 from torchvision import transforms
-from tqdm import tqdm
-
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from misc.Transforms import Rescale
 from misc.Transforms import Rotate_90_CC
-
 from misc.utils import evaluate_pck_accuracy
-
+from misc.helper_functions import denormalize_image
 
 class PoseDataset(Dataset):
   """
   PoseDataset class
   Excavator 2D pose
   """
-  ############## __init__ ##############
   def __init__(self,
                dataset_dir = None,
                is_train = True,
@@ -242,31 +242,30 @@ class PoseDataset(Dataset):
 
     return target, target_weight
 
-"""
-# for debugging
+if __name__=='__main__':
 
-dataset_dir = os.path.join('D:', os.sep, 'Google Drive', 'Google Drive - Monash','Colab Notebooks', 'My Projects', 'Excavator_Pose_Estimation', 'datasets', 'RealExcavators_EvaluationSet')
+  print()
+  print(os.getcwd())
 
-dataset = RealExcavatorsDataset(dataset_dir = dataset_dir,
-                                is_train = True,
-                                image_width = 288,
-                                image_height = 384,
-                                color_rgb = True,
-                                heatmap_sigma = 3
-                                )
-from misc.helper_functions import denormalize_image
-import torch
+  dataset_name = 'FDR_1k'
+  dataset_subdir = 'train'
+  dataset_dir = os.path.join(os.getcwd(), 'datasets', dataset_name, dataset_subdir)
+  dataset = PoseDataset(dataset_dir = dataset_dir,
+                                  is_train = True,
+                                  image_width = 288,
+                                  image_height = 384,
+                                  color_rgb = True,
+                                  heatmap_sigma = 3
+                                  )
 
-for i in range(3):
-        
-    image, heatmaps_gt, target_weight, joints_data = dataset.__getitem__(20)
-    image = denormalize_image(image.cpu(), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    
-    heatmaps_gt = torch.from_numpy(heatmaps_gt).unsqueeze(0)
-    exp_name = '20200910_2241'
-    #show_all_heatmaps_rotate(image, heatmaps_gt[0], heatmaps_gt[0], separate=True, fig_no = 1, exp_name= exp_name)
-    
-    target_weight = torch.from_numpy(target_weight).unsqueeze(0)
-    print(target_weight)
-
-"""
+  for i in range(3):
+          
+      image, heatmaps_gt, target_weight, joints_data = dataset.__getitem__(20)
+      image = denormalize_image(image.cpu(), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+      
+      heatmaps_gt = torch.from_numpy(heatmaps_gt).unsqueeze(0)
+      exp_name = '20200910_2241'
+      #show_all_heatmaps_rotate(image, heatmaps_gt[0], heatmaps_gt[0], separate=True, fig_no = 1, exp_name= exp_name)
+      
+      target_weight = torch.from_numpy(target_weight).unsqueeze(0)
+      print(target_weight)

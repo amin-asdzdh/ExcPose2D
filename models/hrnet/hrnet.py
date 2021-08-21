@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from modules import BasicBlock, Bottleneck
+from models.hrnet.modules import BasicBlock, Bottleneck
 
 
 class StageModule(nn.Module):
