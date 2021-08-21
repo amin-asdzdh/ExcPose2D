@@ -25,8 +25,8 @@ from misc.Transforms import Rescale
 
 # pass in the arguments
 sys.argv = ['train_colab',
-            '--pretrained_weight_path', '/content/drive/My Drive/Colab Notebooks/My Projects/Excavator_Pose_Estimation/logs/Experiment_1_results/Vis0_FDR_15k_20201006_2323_checkpoint_last.pth', 
-            '--epochs', '20',
+            '--pretrained_weight_path', './pretrained_models/pose_hrnet_w48_384x288.pth', 
+            '--epochs', '5',
             '--image_resolution', '(384, 288)',
             '--lr', '0.00001',
             '--batch_size', '8',
