@@ -20,8 +20,8 @@ from misc.utils import evaluate_pck_accuracy
 
 class PoseDataset(Dataset):
   """
-  ExcavatorDataset class
-  dataset from Luo et al. 2020
+  PoseDataset class
+  Excavator 2D pose
   """
   ############## __init__ ##############
   def __init__(self,
