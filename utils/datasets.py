@@ -1,23 +1,22 @@
 import os
 import sys
-from pathlib import Path
-FILE = Path(__file__).absolute()
-sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
-
-import random
 import cv2
 import torch
 import numpy as np
 import pandas as pd
-
 from torchvision import transforms
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from pathlib import Path
+
+FILE = Path(__file__).absolute()
+sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
 
 from misc.Transforms import Rescale
 from misc.Transforms import Rotate_90_CC
 from misc.utils import evaluate_pck_accuracy
 from misc.helper_functions import denormalize_image
+
 
 class PoseDataset(Dataset):
   """
@@ -26,11 +25,13 @@ class PoseDataset(Dataset):
   """
   def __init__(self,
                dataset_dir = None,
-               is_train = True,
+               is_train = False,
                image_width = 288,
                image_height = 384,
                color_rgb = True,
-               heatmap_sigma = 3):
+               heatmap_sigma = 3,
+               no_of_joints = 6):
+    
     super(PoseDataset, self).__init__()
 
     self.dataset_dir = dataset_dir
@@ -39,39 +40,33 @@ class PoseDataset(Dataset):
     self.image_height = image_height
     self.color_rgb = color_rgb
     self.heatmap_sigma = heatmap_sigma
-
-    self.data_path = os.path.join(self.dataset_dir, 'images')
-    self.annotation_path = os.path.join(self.dataset_dir, os.path.join('labels','labels.csv'))
+    self.no_of_joints = no_of_joints
+    
+    self.images_path = os.path.join(self.dataset_dir, 'images')
+    self.labels_path = os.path.join(self.dataset_dir, 'labels','labels.csv')
 
     self.image_size = (self.image_width, self.image_height)
     self.aspect_ratio = self.image_width * 1.0 / self.image_height
     self.heatmap_size = (int(self.image_width / 4), int(self.image_height / 4))
     self.heatmap_type = 'gaussian'
-    self.pixel_std = 200  # I don't understand the meaning of pixel_std (=200) in the original implementation
-
-    self.no_of_joints = 6
-    
     
     self.transform = transforms.Compose([
                                          transforms.ToTensor(),
                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                                          ])
     
-    # load annotations (Type: dataframe)
-    self.annotations = pd.read_csv(self.annotation_path)
-    # load imageIds (Type: dataframe)
+    # load labels as a dataframe
+    self.annotations = pd.read_csv(self.labels_path)
+    # get all imgIds
     self.imgIds = self.annotations['image_id']
 
-    # load and format annotations for each image of ExcavatorDataset
+    # load and format annotations for each image
+    print('\nloading annotations from: ', self.labels_path)
     self.data = []
-    
-    #print('\nlabels path: ' , self.annotation_path, '\n')
-
-    for imgId in self.imgIds:
-
-      print(imgId)
+    for imgId in tqdm(self.imgIds):
 
       joints = self.annotations.loc[self.annotations['image_id'] == imgId]
+      print(joints)
 
       # get joint coordinates for this imgId
       joints = joints[['body_end_x', 'body_end_y',
@@ -107,14 +102,16 @@ class PoseDataset(Dataset):
 
       self.data.append({
         'imgId': imgId,
-        'imgPath': os.path.join(self.dataset_dir,'images', imgId),
+        'imgPath': os.path.join(self.images_path, imgId),
         'joints': joints,
         'joints_visibility': joints_visibility
         })
+
+      break
     
     # annotations loaded
     print('\n Annotations loaded')
-    print('labels path: ' , self.annotation_path, '\n')
+    print('labels path: ' , self.labels_path, '\n')
 
 
   ############## __len__ ##############
@@ -245,9 +242,6 @@ class PoseDataset(Dataset):
     return target, target_weight
 
 if __name__=='__main__':
-
-  print()
-  print(os.getcwd())
 
   dataset_name = 'FDR_1k'
   dataset_subdir = 'train'
