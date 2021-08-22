@@ -69,6 +69,8 @@ class PoseDataset(Dataset):
 
     for imgId in self.imgIds:
 
+      print(imgId)
+
       joints = self.annotations.loc[self.annotations['image_id'] == imgId]
 
       # get joint coordinates for this imgId
