@@ -1,9 +1,19 @@
-### **Excavator Pose Estimation using Synthetically Generated Datasets**
+# Documentation
 
+## Install
 
+```
+$ git clone https://github.com/N1M49/ExcPose2D.git
+$ cd ExcPose2D
+$ pip install -r requirements.txt
+```
 
-![image-20210809203228155](C:\Users\amina\AppData\Roaming\Typora\typora-user-images\image-20210809203228155.png)
+## Quick Start Examples
 
+Training
+```
+$ python train.py --dataset_dir './datasets/FDR_1k' -p './pretrained_models/pose_hrnet_w48_384x288.pth' --vis_enabled False
+```
 
 
 
