@@ -1,15 +1,12 @@
 import os
-from datetime import datetime
-
+import numpy as np
 import torch
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
+from datetime import datetime
 
-import numpy as np
-
-#from datasets.PoseEstimation import PoseEstimationDataset
 from utils.loss import JointsMSELoss, JointsOHKMMSELoss
 from misc.checkpoint import save_checkpoint, load_checkpoint
 from misc.utils import flip_tensor, flip_back
@@ -28,7 +25,7 @@ class Train(object):
                  ds_val,
                  epochs=210,
                  batch_size=16,
-                 num_workers=4,
+                 num_workers=1,
                  loss='JointsMSELoss',
                  lr=0.001,
                  lr_decay=True,
@@ -51,19 +48,16 @@ class Train(object):
                  val_dataset_dir='not added'
                  ):
         """
-        Initializes a new ExcavatorTrain object which extends the parent Train class.
-        The initialization function calls the init function of the Train class.
-
         Args:
             exp_name (str):  experiment name.
-            ds_train (HumanPoseEstimationDataset): train dataset.
-            ds_val (HumanPoseEstimationDataset): validation dataset.
+            ds_train (PoseDataset): train dataset.
+            ds_val (PoseDataset): validation dataset.
             epochs (int): number of epochs.
                 Default: 210
             batch_size (int): batch size.
                 Default: 16
             num_workers (int): number of workers for each DataLoader
-                Default: 4
+                Default: 1
             loss (str): loss function. Valid values are 'JointsMSELoss' and 'JointsOHKMMSELoss'.
                 Default: "JointsMSELoss"
             lr (float): learning rate.
@@ -143,28 +137,25 @@ class Train(object):
             else:
                 self.device = torch.device('cpu')
 
-        print(self.device, '\n')
+        print('device: ', self.device, '\n')
 
-        
         os.makedirs(self.log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
 
         #if self.use_tensorboard:
         #    self.summary_writer = tb.SummaryWriter(self.log_path)
 
-        #
         # write all experiment parameters in parameters.txt and in tensorboard text field
         self.parameters = [x + ': ' + str(y) + '\n' for x, y in locals().items()]
         with open(os.path.join(self.log_path, 'parameters.txt'), 'w') as fd:
             fd.writelines(self.parameters)
+        
         #if self.use_tensorboard:
         #    self.summary_writer.add_text('parameters', '\n'.join(self.parameters))
 
-        #
         # load model
         self.model = HRNet(c=self.model_c, nof_joints=self.model_nof_joints,
                            bn_momentum=self.model_bn_momentum).to(self.device)
 
-        #
         # define loss and optimizers
         if self.loss == 'JointsMSELoss':
             self.loss_fn = JointsMSELoss().to(self.device)
@@ -181,9 +172,7 @@ class Train(object):
         else:
             raise NotImplementedError
 
-        #
         # load pre-trained weights (such as those pre-trained on imagenet)
-
         print('\n##\nLoading pre-trained weights\nLoad from: ', os.path.abspath(self.pretrained_weight_path))
         
         if self.pretrained_weight_path is not None:

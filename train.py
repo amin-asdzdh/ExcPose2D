@@ -31,7 +31,8 @@ sys.argv = ['train_colab',
             '--lr', '0.00001',
             '--batch_size', '8',
             '--train_dataset_dir', './datasets/FDR_1k/train',
-            '--val_dataset_dir', './datasets/FDR_1k/val'
+            '--val_dataset_dir', './datasets/FDR_1k/val',
+            '--vis_enabled', 'True'
             ]
 
 
@@ -61,7 +62,8 @@ def main(exp_name,
          seed=1,
          device=None,
          train_dataset_dir='not added',
-         val_dataset_dir='not added'
+         val_dataset_dir='not added',
+         vis_enabled = False
          ):
 
     # Seeds
@@ -98,18 +100,12 @@ def main(exp_name,
     # load train and val datasets
     ds_train = PoseDataset(dataset_dir = train_dataset_dir,
                is_train = True,
-               image_width = 288,
-               image_height = 384,
-               color_rgb = True,
-               heatmap_sigma = 3
+               vis_enabled = vis_enabled
                )
 
     ds_val = PoseDataset(dataset_dir = val_dataset_dir,
-               is_train = True,
-               image_width = 288,
-               image_height = 384,
-               color_rgb = True,
-               heatmap_sigma = 3
+               is_train = False,
+               vis_enabled = vis_enabled
                )
 
     train = Train(
@@ -181,7 +177,8 @@ if __name__ == '__main__':
     
     parser.add_argument("--train_dataset_dir", type=str, default=None)
     parser.add_argument("--val_dataset_dir", type=str, default=None)
-    
+    parser.add_argument("--vis_enabled", type=bool, default=False)
+
     args = parser.parse_args()
 
     main(**args.__dict__)
