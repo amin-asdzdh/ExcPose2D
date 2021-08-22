@@ -1,23 +1,22 @@
 import os
 import sys
-from pathlib import Path
-FILE = Path(__file__).absolute()
-sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
-
-import random
 import cv2
 import torch
 import numpy as np
 import pandas as pd
-
 from torchvision import transforms
 from torch.utils.data import Dataset
 from tqdm import tqdm
+from pathlib import Path
+
+FILE = Path(__file__).absolute()
+sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
 
 from misc.Transforms import Rescale
 from misc.Transforms import Rotate_90_CC
 from misc.utils import evaluate_pck_accuracy
 from misc.helper_functions import denormalize_image
+
 
 class PoseDataset(Dataset):
   """
@@ -26,11 +25,14 @@ class PoseDataset(Dataset):
   """
   def __init__(self,
                dataset_dir = None,
-               is_train = True,
+               is_train = False,
                image_width = 288,
                image_height = 384,
                color_rgb = True,
-               heatmap_sigma = 3):
+               heatmap_sigma = 3,
+               no_of_keypts = 6,
+               vis_enabled = False):
+    
     super(PoseDataset, self).__init__()
 
     self.dataset_dir = dataset_dir
@@ -39,64 +41,63 @@ class PoseDataset(Dataset):
     self.image_height = image_height
     self.color_rgb = color_rgb
     self.heatmap_sigma = heatmap_sigma
-
-    self.data_path = os.path.join(self.dataset_dir, 'images')
-    self.annotation_path = os.path.join(self.dataset_dir, os.path.join('labels','labels.csv'))
+    self.no_of_keypts = no_of_keypts
+    self.vis_enabled = vis_enabled
+    
+    self.images_path = os.path.join(self.dataset_dir, 'images')
+    self.labels_path = os.path.join(self.dataset_dir, 'labels','labels.csv')
 
     self.image_size = (self.image_width, self.image_height)
     self.aspect_ratio = self.image_width * 1.0 / self.image_height
     self.heatmap_size = (int(self.image_width / 4), int(self.image_height / 4))
     self.heatmap_type = 'gaussian'
-    self.pixel_std = 200  # I don't understand the meaning of pixel_std (=200) in the original implementation
-
-    self.no_of_joints = 6
-    
     
     self.transform = transforms.Compose([
                                          transforms.ToTensor(),
                                          transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                                          ])
     
-    # load annotations (Type: dataframe)
-    self.annotations = pd.read_csv(self.annotation_path)
-    # load imageIds (Type: dataframe)
+    # load labels as a dataframe
+    self.annotations = pd.read_csv(self.labels_path)
+    # get all imgIds
     self.imgIds = self.annotations['image_id']
 
-    # load and format annotations for each image of ExcavatorDataset
+    # load and format annotations for each image
+    print('\nloading annotations from: ', self.labels_path)
     self.data = []
-    
-    #print('\nlabels path: ' , self.annotation_path, '\n')
+    for imgId in tqdm(self.imgIds):
 
-    for imgId in self.imgIds:
-
-      print(imgId)
-
-      joints = self.annotations.loc[self.annotations['image_id'] == imgId]
-
-      # get joint coordinates for this imgId
-      joints = joints[['body_end_x', 'body_end_y',
-                            'cab_boom_x', 'cab_boom_y',
-                            'boom_arm_x', 'boom_arm_y',
-                            'arm_bucket_x', 'arm_bucket_y',
-                            'bucket_end_left_x', 'bucket_end_left_y',
-                            'bucket_end_right_x', 'bucket_end_right_y']]
-      # convert from dataframe to numpy array and reshape from (1, 12) to (6, 2)
-      joints = joints.to_numpy().reshape((6, 2))
+      sample_labels = self.annotations.loc[self.annotations['image_id'] == imgId]
       
-      joints_visibility = np.ones((self.no_of_joints, 2), dtype=np.float)
+      # get kypts, convert to numpy array, and reshape
+      keypts = sample_labels[['body_end_x', 'body_end_y',
+                              'cab_boom_x', 'cab_boom_y',
+                              'boom_arm_x', 'boom_arm_y',
+                              'arm_bucket_x', 'arm_bucket_y',
+                              'bucket_end_left_x', 'bucket_end_left_y',
+                              'bucket_end_right_x', 'bucket_end_right_y']].to_numpy().reshape((self.no_of_keypts, 2))
+ 
+      keypts_v = np.ones((self.no_of_keypts, 2), dtype=np.float)
       
-      
+<<<<<<< HEAD
       
       # comment out this part
       '''
       joints_v = self.annotations.loc[self.annotations['image_id'] == imgId]
       joints_v = joints_v[['body_end_v',
+=======
+      # use visiblity status labels if enabled     
+      if self.vis_enabled == True:
+        
+        v = sample_labels[['body_end_v',
+>>>>>>> refactor/datasets
                            'cab_boom_v',
                            'boom_arm_v',
                            'arm_bucket_v',
                            'bucket_end_left_v',
-                           'bucket_end_right_v']]
+                           'bucket_end_right_v']].to_numpy()
 
+<<<<<<< HEAD
       joints_v = joints_v.to_numpy()
       #joints_v = np.transpose(joints_v)
       joints_visibility[:, 0] = joints_v 
@@ -104,65 +105,55 @@ class PoseDataset(Dataset):
       '''
       # comment out up to this point
       
+=======
+        keypts_v[:, 0] = v
+        keypts_v[:, 1] = v 
+>>>>>>> refactor/datasets
 
       self.data.append({
         'imgId': imgId,
-        'imgPath': os.path.join(self.dataset_dir,'images', imgId),
-        'joints': joints,
-        'joints_visibility': joints_visibility
+        'imgPath': os.path.join(self.images_path, imgId),
+        'keypts': keypts,
+        'keypts_visibility': keypts_v
         })
     
     # annotations loaded
-    print('\n Annotations loaded')
-    print('labels path: ' , self.annotation_path, '\n')
+    print('\n Annotations loaded\n')
 
-
-  ############## __len__ ##############
   def __len__(self):
     return len(self.data)
 
-  ############## __getitem__ ##############
   def __getitem__(self, index):
-
-    joints_data = self.data[index].copy()
+    sample_data = self.data[index].copy()
 
     # read the image from disk
-    image = cv2.imread(joints_data['imgPath'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
-
+    image = cv2.imread(sample_data['imgPath'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
     if self.color_rgb:
       image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
     if image is None:
       raise ValueError('Fail to read %s' % image)
 
-    joints = joints_data['joints']
-    joints_vis = joints_data['joints_visibility']
 
-    # store the sample in a dict called sample
-    sample = {'image': image, 'keypoints': joints}
+    # create sample dict for transformation
+    sample = {'image': image, 'keypoints': sample_data['keypts']}
 
-    # create an instance of the Rescale transform to rescale the img and keypoints
-    rescale_transform = Rescale((384, 288))
+    # apply transforms
     rotate_transform = Rotate_90_CC()
-    
-    # transform the sample
     transformed_sample = rotate_transform(sample)
+    rescale_transform = Rescale((384, 288))
     transformed_sample = rescale_transform(transformed_sample)
 
-    # update the transformed image and joints
+    # update the transformed sample (image & keypoints)
     image = transformed_sample['image']
-    joints = transformed_sample['keypoints']
-
-    # update joints_data with the transformed joints
-    joints_data['joints'] = transformed_sample['keypoints']
-
+    sample_data['keypts'] = transformed_sample['keypoints']
+    
     # convert image to tensor and normalize
     image = self.transform(image)
 
-    # generate heatmaps for joints
-    target, target_weight = self._generate_target(joints, joints_vis)
+    # generate heatmaps for keypoints
+    target, target_weight = self._generate_target(sample_data['keypts'], sample_data['keypts_visibility'])
 
-    return image, target.astype(np.float32), target_weight.astype(np.float32), joints_data
+    return image, target.astype(np.float32), target_weight.astype(np.float32), sample_data
 
   ############## evaluate_accuracy ##############
 
@@ -186,24 +177,24 @@ class PoseDataset(Dataset):
 
   def _generate_target(self, joints, joints_vis):
     """
-    :param joints: [no_of_joints, 3]?
-    :param joints_vis: [no_of_joints, 3] I don't understand why there is 3 columns?
+    :param joints: [no_of_keypts, 3]?
+    :param joints_vis: [no_of_keypts, 3] I don't understand why there is 3 columns?
     :return: target, target_weight(1: visible, 0: invisible)
     """
     # initialize target_weight
-    target_weight = np.ones((self.no_of_joints, 1), dtype=np.float)
+    target_weight = np.ones((self.no_of_keypts, 1), dtype=np.float)
     target_weight[:, 0] = joints_vis[:, 0]
 
     if self.heatmap_type == 'gaussian':
       # initialize target (target is the gaussian heatmap for each joint)
-      target = np.zeros((self.no_of_joints,
+      target = np.zeros((self.no_of_keypts,
                          self.heatmap_size[1],
                          self.heatmap_size[0]),
                         dtype=np.float32)
       
       tmp_size = self.heatmap_sigma * 3   # don't exactly know why
 
-      for joint_id in range(self.no_of_joints):
+      for joint_id in range(self.no_of_keypts):
         #print('\n ### INSIDE _generate_target ###\n')
         #print(joints)
         feat_stride = np.asarray(self.image_size) / np.asarray(self.heatmap_size)
@@ -246,28 +237,18 @@ class PoseDataset(Dataset):
 
 if __name__=='__main__':
 
-  print()
-  print(os.getcwd())
-
   dataset_name = 'FDR_1k'
   dataset_subdir = 'train'
   dataset_dir = os.path.join(os.getcwd(), 'datasets', dataset_name, dataset_subdir)
-  dataset = PoseDataset(dataset_dir = dataset_dir,
-                                  is_train = True,
-                                  image_width = 288,
-                                  image_height = 384,
-                                  color_rgb = True,
-                                  heatmap_sigma = 3
-                                  )
-
-  for i in range(3):
+  dataset = PoseDataset(dataset_dir = dataset_dir, vis_enabled=True)
           
-      image, heatmaps_gt, target_weight, joints_data = dataset.__getitem__(20)
-      image = denormalize_image(image.cpu(), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-      
-      heatmaps_gt = torch.from_numpy(heatmaps_gt).unsqueeze(0)
-      exp_name = '20200910_2241'
-      #show_all_heatmaps_rotate(image, heatmaps_gt[0], heatmaps_gt[0], separate=True, fig_no = 1, exp_name= exp_name)
-      
-      target_weight = torch.from_numpy(target_weight).unsqueeze(0)
-      print(target_weight)
+
+  image, heatmaps_gt, target_weight, sample_data = dataset.__getitem__(20)
+  image = denormalize_image(image.cpu(), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+  
+  heatmaps_gt = torch.from_numpy(heatmaps_gt).unsqueeze(0)
+  exp_name = '20200910_2241'
+  #show_all_heatmaps_rotate(image, heatmaps_gt[0], heatmaps_gt[0], separate=True, fig_no = 1, exp_name= exp_name)
+  
+  target_weight = torch.from_numpy(target_weight).unsqueeze(0)
+  print(target_weight)
