@@ -88,7 +88,7 @@ class PoseDataset(Dataset):
       
       
       # comment out this part
-      
+      '''
       joints_v = self.annotations.loc[self.annotations['image_id'] == imgId]
       joints_v = joints_v[['body_end_v',
                            'cab_boom_v',
@@ -101,7 +101,7 @@ class PoseDataset(Dataset):
       #joints_v = np.transpose(joints_v)
       joints_visibility[:, 0] = joints_v 
       joints_visibility[:, 1] = joints_v 
-      
+      '''
       # comment out up to this point
       
 
