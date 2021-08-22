@@ -79,36 +79,21 @@ class PoseDataset(Dataset):
  
       keypts_v = np.ones((self.no_of_keypts, 2), dtype=np.float)
       
-<<<<<<< HEAD
-      
-      # comment out this part
-      '''
-      joints_v = self.annotations.loc[self.annotations['image_id'] == imgId]
-      joints_v = joints_v[['body_end_v',
-=======
-      # use visiblity status labels if enabled     
-      if self.vis_enabled == True:
-        
+      # use visiblity status labels if enabled
+      if self.vis_enabled == 'True':
+        print('it is actually true')
         v = sample_labels[['body_end_v',
->>>>>>> refactor/datasets
                            'cab_boom_v',
                            'boom_arm_v',
                            'arm_bucket_v',
                            'bucket_end_left_v',
                            'bucket_end_right_v']].to_numpy()
-
-<<<<<<< HEAD
-      joints_v = joints_v.to_numpy()
-      #joints_v = np.transpose(joints_v)
-      joints_visibility[:, 0] = joints_v 
-      joints_visibility[:, 1] = joints_v 
-      '''
-      # comment out up to this point
-      
-=======
         keypts_v[:, 0] = v
         keypts_v[:, 1] = v 
->>>>>>> refactor/datasets
+      elif self.vis_enabled == 'False':
+        pass
+      else:
+        raise ValueError("Invalid value for vis_enabled, must be 'True' or 'False'")
 
       self.data.append({
         'imgId': imgId,
