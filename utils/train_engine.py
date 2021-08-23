@@ -14,6 +14,34 @@ from misc.visualization import save_images
 from models.hrnet.hrnet import HRNet
 
 
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, patience=7):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+        """
+        self.patience = patience
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        
+    def __call__(self, val_loss):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.counter = 0
+
+
 class Train(object):
     """
     Train class 
@@ -324,6 +352,9 @@ class Train(object):
         
         return self.mean_loss_val, self.mean_acc_val
 
+    def _early_stopping(self, val_loss):
+        early_stop = False
+        return early_stop
 
     def _checkpoint(self):
 
@@ -354,11 +385,13 @@ class Train(object):
         """
         Runs the training.
         """
-
         print('\nTraining started @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
-        with open(self.log_path + "/model.log", "a") as f:
+        with open(self.log_path + "/results.csv", "a") as f:
             f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'}\n")
+
+        # initialize the early_stopping object
+        early_stopping = EarlyStopping(patience=10)
         
         # start training
         for self.epoch in range(self.starting_epoch, self.epochs):
@@ -371,25 +404,36 @@ class Train(object):
             self.mean_acc_val = 0.
             self.mean_mAP_val = 0.
 
-            #
             # Train (run through the dataset once)
             loss_train, acc_train = self._train()
-            with open(self.log_path + "/model.log", "a") as f:
+            with open(self.log_path + "/results.csv", "a") as f:
                 f.write(f"{self.exp_name},{self.epoch + 1},{round(float(loss_train) ,7)},{round(float(acc_train) ,2)},")
 
-            #
-            # Val
+            # Validate
             loss_val, acc_val = self._val()            
-            with open(self.log_path + "/model.log", "a") as f:
+            with open(self.log_path + "/results.csv", "a") as f:
                 f.write(f"{round(float(loss_val) ,7)},{round(float(acc_val) ,2)}\n")
             
-            #
             # LR Update
             if self.lr_decay:
                 self.lr_scheduler.step()
 
-            #
             # Checkpoint
             self._checkpoint()
 
+            # early_stopping needs the validation loss to check if it has decresed, 
+            # and if it has, it will make a checkpoint of the current model
+            early_stopping(loss_val)
+            
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+
         print('\nTraining ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+
+
+
+
+
+
