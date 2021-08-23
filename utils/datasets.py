@@ -12,8 +12,8 @@ from pathlib import Path
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
 
-from misc.Transforms import Rescale
-from misc.Transforms import Rotate_90_CC
+from misc.transforms import Rescale
+from misc.transforms import Rotate_90_CC
 from misc.utils import evaluate_pck_accuracy
 from misc.helper_functions import denormalize_image
 
