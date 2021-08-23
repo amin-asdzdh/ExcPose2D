@@ -139,7 +139,7 @@ if __name__ == '__main__':
                         type=str, default=str(datetime.now().strftime("%Y%m%d_%H%M")))
     parser.add_argument("--epochs", "-e", help="number of epochs", type=int, default=5)
     parser.add_argument("--batch_size", "-b", help="batch size", type=int, default=8)
-    parser.add_argument("--num_workers", "-w", help="number of DataLoader workers", type=int, default=4)
+    parser.add_argument("--num_workers", "-w", help="number of DataLoader workers", type=int, default=1)
     parser.add_argument("--lr", "-l", help="initial learning rate", type=float, default=0.001)
     parser.add_argument("--disable_lr_decay", help="disable learning rate decay", action="store_true")
     parser.add_argument("--lr_decay_steps", help="learning rate decay steps", type=str, default="(170, 200)")
