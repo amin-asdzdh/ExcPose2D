@@ -358,28 +358,15 @@ class Train(object):
 
     def _checkpoint(self):
 
-        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_last.pth'), epoch=self.epoch + 1, model=self.model,
+        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_last.pth'), epoch=self.epoch+1, model=self.model,
                         optimizer=self.optim, params=self.parameters)
         
-        checkpoint_epoch = str(self.epoch + 1)
-        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_epoch_' + checkpoint_epoch + '.pth'), epoch=self.epoch +1, model=self.model, optimizer=self.optim, params=self.parameters)
-
-
         if self.best_loss is None or self.best_loss > self.mean_loss_val:
             self.best_loss = self.mean_loss_val
             print('best_loss %f at epoch %d' % (self.best_loss, self.epoch + 1))
             save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_loss.pth'), epoch=self.epoch + 1,
                             model=self.model, optimizer=self.optim, params=self.parameters)
-        if self.best_acc is None or self.best_acc < self.mean_acc_val:
-            self.best_acc = self.mean_acc_val
-            print('best_acc %f at epoch %d' % (self.best_acc, self.epoch + 1))
-            save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_acc.pth'), epoch=self.epoch + 1,
-                            model=self.model, optimizer=self.optim, params=self.parameters)
-        if self.best_mAP is None or self.best_mAP < self.mean_mAP_val:
-            self.best_mAP = self.mean_mAP_val
-            print('best_mAP %f at epoch %d' % (self.best_mAP, self.epoch + 1))
-            save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_mAP.pth'), epoch=self.epoch + 1,
-                            model=self.model, optimizer=self.optim, params=self.parameters)
+        
 
     def run(self):
         """
@@ -426,7 +413,7 @@ class Train(object):
             early_stopping(loss_val)
             
             if early_stopping.early_stop:
-                print("Early stopping")
+                print("\nEarly stopping\n")
                 break
 
         print('\nTraining ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
