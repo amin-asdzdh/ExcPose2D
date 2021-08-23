@@ -16,7 +16,6 @@ from datetime import datetime
 
 from utils.train_engine import Train
 from utils.datasets import PoseDataset
-from misc.Transforms import Rescale
 
 
 '''
