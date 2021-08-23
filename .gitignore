@@ -19,6 +19,7 @@
 /datasets
 /logs
 /pretrained_models
+/temp
 
 # ignore datasets
 *.csv
