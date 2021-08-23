@@ -26,8 +26,8 @@ def plot_heatmaps(image,
     """
     Args:
       image (numpy.ndarray)
-      gt_heatmaps ()
-      pred_heatmapts ()
+      gt_heatmaps (torch.tensor)
+      pred_heatmapts (torch.tensor)
       save_to (str): path to save the figure
       file_name (str): figure name without the extension
       num_of_keypts (int)
