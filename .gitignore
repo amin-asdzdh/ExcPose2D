@@ -12,6 +12,10 @@
 *.tar
 *.pth
 
+# ignore server log files
+*.err
+*.out
+
 # ignore pickle extensions
 *.pkl
 
