@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+import time
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
@@ -269,7 +270,9 @@ class Train(object):
         num_samples = self.len_dl_train * self.batch_size
 
         self.model.train()
-        for step, (image, target, target_weight, joints_data) in enumerate(tqdm(self.dl_train, desc='Training')):
+        pbar = tqdm(self.dl_train, desc='Training')
+        for step, (image, target, target_weight, joints_data) in enumerate(pbar):
+
             image = image.to(self.device)
             target = target.to(self.device)
             target_weight = target_weight.to(self.device)
@@ -301,6 +304,8 @@ class Train(object):
             #    if step == 0:
             #        save_images(image, target, joints_target, output, joints_preds, joints_data['joints_visibility'],
             #                    self.summary_writer, step=step + self.epoch * self.len_dl_train, prefix='train_')
+            gpu_mem = torch.cuda.memory_allocated()/10**9
+            pbar.set_postfix({'gpu_mem': gpu_mem})
 
         self.mean_loss_train /= len(self.dl_train)
         self.mean_acc_train /= len(self.dl_train)
@@ -321,7 +326,8 @@ class Train(object):
         self.model.eval()
         
         with torch.no_grad():
-            for step, (image, target, target_weight, joints_data) in enumerate(tqdm(self.dl_val, desc='Validating')):
+            pbar = tqdm(self.dl_val, desc='Validating')
+            for step, (image, target, target_weight, joints_data) in enumerate(pbar):
                 image = image.to(self.device)
                 target = target.to(self.device)
                 target_weight = target_weight.to(self.device)
@@ -343,6 +349,9 @@ class Train(object):
 
                 self.mean_loss_val += loss.item()
                 self.mean_acc_val += avg_acc.item()
+                
+                gpu_mem = torch.cuda.memory_allocated()/10**9
+                pbar.set_postfix({'gpu_mem': gpu_mem})
                 
 
         self.mean_loss_val /= len(self.dl_val)
@@ -373,12 +382,13 @@ class Train(object):
         Runs the training.
         """
         print('\nTraining started @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        start_time = time.time()
         
         with open(self.log_path + "/results.csv", "a") as f:
             f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'}\n")
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=10)
+        early_stopping = EarlyStopping(patience=2)
         
         # start training
         for self.epoch in range(self.starting_epoch, self.epochs):
@@ -415,8 +425,11 @@ class Train(object):
             if early_stopping.early_stop:
                 print("\nEarly stopping\n")
                 break
-
+        
+        end_time = time.time()
+        total_time = end_time - start_time
         print('\nTraining ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print('Total training time: ', round(total_time/60), 'minutes')
 
 
 
