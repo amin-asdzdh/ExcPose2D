@@ -74,7 +74,8 @@ class Train(object):
                  flip_test_images=False,
                  device=None,
                  train_dataset_dir='not added',
-                 val_dataset_dir='not added'
+                 val_dataset_dir='not added',
+                 patience = 10
                  ):
         """
         Args:
@@ -150,6 +151,7 @@ class Train(object):
         self.model_bn_momentum = model_bn_momentum
         self.flip_test_images = flip_test_images
         self.device = None
+        self.patience = patience
         
         self.epoch = 0
         
@@ -311,7 +313,7 @@ class Train(object):
         self.mean_acc_train /= len(self.dl_train)
 
         # this is the loss and accuracy or each epoch 
-        print('\nTrain: Loss %f - Accuracy %f\n' % (self.mean_loss_train, self.mean_acc_train))
+        print('Train: Loss %f - Accuracy %f\n' % (self.mean_loss_train, self.mean_acc_train))
         
         return self.mean_loss_train, self.mean_acc_train
     
@@ -357,7 +359,7 @@ class Train(object):
         self.mean_loss_val /= len(self.dl_val)
         self.mean_acc_val /= len(self.dl_val)
         
-        print('\nValidation: Loss %f - Accuracy %f' % (self.mean_loss_val, self.mean_acc_val))
+        print('Validation: Loss %f - Accuracy %f' % (self.mean_loss_val, self.mean_acc_val),'\n')
         
         return self.mean_loss_val, self.mean_acc_val
 
@@ -388,12 +390,12 @@ class Train(object):
             f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'}\n")
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=2)
+        early_stopping = EarlyStopping(patience=self.patience)
         
         # start training
         for self.epoch in range(self.starting_epoch, self.epochs):
             print('\n------------------------------------\n')
-            print('\nEpoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            print('\nEpoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),'\n')
 
             self.mean_loss_train = 0.
             self.mean_loss_val = 0.
@@ -422,6 +424,7 @@ class Train(object):
             # and if it has, it will make a checkpoint of the current model
             early_stopping(loss_val)
             
+            print('patience: ', early_stopping.counter, '/', early_stopping.patience)
             if early_stopping.early_stop:
                 print("\nEarly stopping\n")
                 break

@@ -53,7 +53,8 @@ def main(exp_name,
          seed,
          device,
          dataset_dir,
-         vis_enabled
+         vis_enabled,
+         patience
          ):
 
     # Seeds
@@ -126,7 +127,8 @@ def main(exp_name,
         flip_test_images=False,
         device=device,
         train_dataset_dir = train_dataset_dir,
-        val_dataset_dir = val_dataset_dir
+        val_dataset_dir = val_dataset_dir,
+        patience = patience
     )
 
     train.run()
@@ -168,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", "-d", help="device", type=str, default=None)
     parser.add_argument("--dataset_dir", type=str, default=None)
     parser.add_argument("--vis_enabled", type=str, default='False')
+    parser.add_argument("--patience", help="early stopping patience", type=int, default=10)
     
 
     args = parser.parse_args()
