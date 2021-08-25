@@ -168,7 +168,9 @@ class Train(object):
             else:
                 self.device = torch.device('cpu')
 
-        print('device: ', self.device, '\n')
+        print('device: ', self.device)
+        if torch.cuda.is_available():
+            print(torch.cuda.get_device_name())
 
         os.makedirs(self.log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
 
@@ -306,7 +308,8 @@ class Train(object):
             #    if step == 0:
             #        save_images(image, target, joints_target, output, joints_preds, joints_data['joints_visibility'],
             #                    self.summary_writer, step=step + self.epoch * self.len_dl_train, prefix='train_')
-            gpu_mem = torch.cuda.memory_allocated()/10**9
+            
+            gpu_mem = str(round(torch.cuda.memory_allocated()/1024**3, 1)) + ' GB'
             pbar.set_postfix({'gpu_mem': gpu_mem})
 
         self.mean_loss_train /= len(self.dl_train)
@@ -387,7 +390,7 @@ class Train(object):
         start_time = time.time()
         
         with open(self.log_path + "/results.csv", "a") as f:
-            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'},{'training_time'}\n")
+            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'},{'training_time_mins'}\n")
 
         # initialize the early_stopping object
         early_stopping = EarlyStopping(patience=self.patience)
@@ -424,7 +427,7 @@ class Train(object):
 
             # early_stopping needs the validation loss to check if it has decresed, 
             # and if it has, it will make a checkpoint of the current model
-            epoch_duration = epoch_start - time.time()
+            epoch_duration = time.time() - epoch_start 
             with open(self.log_path + "/results.csv", "a") as f:
                 f.write(f"{round(epoch_duration/60, 2)}\n")
 

@@ -23,7 +23,6 @@ from utils.datasets import PoseDataset
 # '--checkpoint_path', '/content/drive/My Drive/Colab Notebooks/My Projects/Excavator_Pose_Estimation/logs/20200730_0409/checkpoint_last.pth'
 
 sys.argv = ['train_colab',
-            '--pretrained_weight_path', './pretrained_models/pose_hrnet_w48_384x288.pth', 
             '--dataset_dir', './datasets/FDR_1k',
             '--vis_enabled', 1
             ]
@@ -153,7 +152,7 @@ if __name__ == '__main__':
     parser.add_argument("--nesterov", help="enable nesterov", action="store_true")
     parser.add_argument("--pretrained_weight_path", "-p",
                         help="pre-trained weight path. Weights will be loaded before training starts.",
-                        type=str, default=None)
+                        type=str, default='./pretrained_models/pose_hrnet_w48_384x288.pth')
     parser.add_argument("--checkpoint_path", "-c",
                         help="previous checkpoint path. Checkpoint will be loaded before training starts. It includes "
                              "the model, the optimizer, the epoch, and other parameters.",
