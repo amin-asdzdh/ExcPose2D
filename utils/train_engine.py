@@ -387,7 +387,7 @@ class Train(object):
         start_time = time.time()
         
         with open(self.log_path + "/results.csv", "a") as f:
-            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'}\n")
+            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'},{'training_time'}\n")
 
         # initialize the early_stopping object
         early_stopping = EarlyStopping(patience=self.patience)
@@ -395,8 +395,10 @@ class Train(object):
         # start training
         for self.epoch in range(self.starting_epoch, self.epochs):
             print('\n------------------------------------\n')
-            print('\nEpoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),'\n')
+            print('Epoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),'\n')
 
+            epoch_start = time.time() 
+            
             self.mean_loss_train = 0.
             self.mean_loss_val = 0.
             self.mean_acc_train = 0.
@@ -411,7 +413,7 @@ class Train(object):
             # Validate
             loss_val, acc_val = self._val()            
             with open(self.log_path + "/results.csv", "a") as f:
-                f.write(f"{round(float(loss_val) ,7)},{round(float(acc_val) ,2)}\n")
+                f.write(f"{round(float(loss_val) ,7)},{round(float(acc_val) ,2)},")
             
             # LR Update
             if self.lr_decay:
@@ -422,6 +424,10 @@ class Train(object):
 
             # early_stopping needs the validation loss to check if it has decresed, 
             # and if it has, it will make a checkpoint of the current model
+            epoch_duration = epoch_start - time.time()
+            with open(self.log_path + "/results.csv", "a") as f:
+                f.write(f"{round(epoch_duration/60, 2)}\n")
+
             early_stopping(loss_val)
             
             print('patience: ', early_stopping.counter, '/', early_stopping.patience)
