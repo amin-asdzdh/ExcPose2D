@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+import time
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
@@ -12,6 +13,34 @@ from misc.checkpoint import save_checkpoint, load_checkpoint
 from misc.utils import flip_tensor, flip_back
 from misc.visualization import save_images
 from models.hrnet.hrnet import HRNet
+
+
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, patience=7):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+        """
+        self.patience = patience
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        
+    def __call__(self, val_loss):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.counter = 0
 
 
 class Train(object):
@@ -45,7 +74,8 @@ class Train(object):
                  flip_test_images=False,
                  device=None,
                  train_dataset_dir='not added',
-                 val_dataset_dir='not added'
+                 val_dataset_dir='not added',
+                 patience = 10
                  ):
         """
         Args:
@@ -121,6 +151,7 @@ class Train(object):
         self.model_bn_momentum = model_bn_momentum
         self.flip_test_images = flip_test_images
         self.device = None
+        self.patience = patience
         
         self.epoch = 0
         
@@ -137,7 +168,9 @@ class Train(object):
             else:
                 self.device = torch.device('cpu')
 
-        print('device: ', self.device, '\n')
+        print('device: ', self.device)
+        if torch.cuda.is_available():
+            print(torch.cuda.get_device_name())
 
         os.makedirs(self.log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
 
@@ -241,7 +274,9 @@ class Train(object):
         num_samples = self.len_dl_train * self.batch_size
 
         self.model.train()
-        for step, (image, target, target_weight, joints_data) in enumerate(tqdm(self.dl_train, desc='Training')):
+        pbar = tqdm(self.dl_train, desc='Training')
+        for step, (image, target, target_weight, joints_data) in enumerate(pbar):
+
             image = image.to(self.device)
             target = target.to(self.device)
             target_weight = target_weight.to(self.device)
@@ -273,12 +308,15 @@ class Train(object):
             #    if step == 0:
             #        save_images(image, target, joints_target, output, joints_preds, joints_data['joints_visibility'],
             #                    self.summary_writer, step=step + self.epoch * self.len_dl_train, prefix='train_')
+            
+            gpu_mem = str(round(torch.cuda.memory_allocated()/1024**3, 1)) + ' GB'
+            pbar.set_postfix({'gpu_mem': gpu_mem})
 
         self.mean_loss_train /= len(self.dl_train)
         self.mean_acc_train /= len(self.dl_train)
 
         # this is the loss and accuracy or each epoch 
-        print('\nTrain: Loss %f - Accuracy %f\n' % (self.mean_loss_train, self.mean_acc_train))
+        print('Train: Loss %f - Accuracy %f\n' % (self.mean_loss_train, self.mean_acc_train))
         
         return self.mean_loss_train, self.mean_acc_train
     
@@ -293,7 +331,8 @@ class Train(object):
         self.model.eval()
         
         with torch.no_grad():
-            for step, (image, target, target_weight, joints_data) in enumerate(tqdm(self.dl_val, desc='Validating')):
+            pbar = tqdm(self.dl_val, desc='Validating')
+            for step, (image, target, target_weight, joints_data) in enumerate(pbar):
                 image = image.to(self.device)
                 target = target.to(self.device)
                 target_weight = target_weight.to(self.device)
@@ -316,80 +355,97 @@ class Train(object):
                 self.mean_loss_val += loss.item()
                 self.mean_acc_val += avg_acc.item()
                 
+                gpu_mem = torch.cuda.memory_allocated()/10**9
+                pbar.set_postfix({'gpu_mem': gpu_mem})
+                
 
         self.mean_loss_val /= len(self.dl_val)
         self.mean_acc_val /= len(self.dl_val)
         
-        print('\nValidation: Loss %f - Accuracy %f' % (self.mean_loss_val, self.mean_acc_val))
+        print('Validation: Loss %f - Accuracy %f' % (self.mean_loss_val, self.mean_acc_val),'\n')
         
         return self.mean_loss_val, self.mean_acc_val
 
+    def _early_stopping(self, val_loss):
+        early_stop = False
+        return early_stop
 
     def _checkpoint(self):
 
-        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_last.pth'), epoch=self.epoch + 1, model=self.model,
+        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_last.pth'), epoch=self.epoch+1, model=self.model,
                         optimizer=self.optim, params=self.parameters)
         
-        checkpoint_epoch = str(self.epoch + 1)
-        save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_epoch_' + checkpoint_epoch + '.pth'), epoch=self.epoch +1, model=self.model, optimizer=self.optim, params=self.parameters)
-
-
         if self.best_loss is None or self.best_loss > self.mean_loss_val:
             self.best_loss = self.mean_loss_val
             print('best_loss %f at epoch %d' % (self.best_loss, self.epoch + 1))
             save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_loss.pth'), epoch=self.epoch + 1,
                             model=self.model, optimizer=self.optim, params=self.parameters)
-        if self.best_acc is None or self.best_acc < self.mean_acc_val:
-            self.best_acc = self.mean_acc_val
-            print('best_acc %f at epoch %d' % (self.best_acc, self.epoch + 1))
-            save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_acc.pth'), epoch=self.epoch + 1,
-                            model=self.model, optimizer=self.optim, params=self.parameters)
-        if self.best_mAP is None or self.best_mAP < self.mean_mAP_val:
-            self.best_mAP = self.mean_mAP_val
-            print('best_mAP %f at epoch %d' % (self.best_mAP, self.epoch + 1))
-            save_checkpoint(path=os.path.join(self.log_path, 'checkpoint_best_mAP.pth'), epoch=self.epoch + 1,
-                            model=self.model, optimizer=self.optim, params=self.parameters)
+        
 
     def run(self):
         """
         Runs the training.
         """
-
         print('\nTraining started @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        start_time = time.time()
         
-        with open(self.log_path + "/model.log", "a") as f:
-            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'}\n")
+        with open(self.log_path + "/results.csv", "a") as f:
+            f.write(f"{self.exp_name},{'epoch'},{'loss_train'},{'acc_train'},{'loss_val'},{'acc_val'},{'training_time_mins'}\n")
+
+        # initialize the early_stopping object
+        early_stopping = EarlyStopping(patience=self.patience)
         
         # start training
         for self.epoch in range(self.starting_epoch, self.epochs):
             print('\n------------------------------------\n')
-            print('\nEpoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            print('Epoch %d of %d @ %s' % (self.epoch + 1, self.epochs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),'\n')
 
+            epoch_start = time.time() 
+            
             self.mean_loss_train = 0.
             self.mean_loss_val = 0.
             self.mean_acc_train = 0.
             self.mean_acc_val = 0.
             self.mean_mAP_val = 0.
 
-            #
             # Train (run through the dataset once)
             loss_train, acc_train = self._train()
-            with open(self.log_path + "/model.log", "a") as f:
+            with open(self.log_path + "/results.csv", "a") as f:
                 f.write(f"{self.exp_name},{self.epoch + 1},{round(float(loss_train) ,7)},{round(float(acc_train) ,2)},")
 
-            #
-            # Val
+            # Validate
             loss_val, acc_val = self._val()            
-            with open(self.log_path + "/model.log", "a") as f:
-                f.write(f"{round(float(loss_val) ,7)},{round(float(acc_val) ,2)}\n")
+            with open(self.log_path + "/results.csv", "a") as f:
+                f.write(f"{round(float(loss_val) ,7)},{round(float(acc_val) ,2)},")
             
-            #
             # LR Update
             if self.lr_decay:
                 self.lr_scheduler.step()
 
-            #
             # Checkpoint
             self._checkpoint()
 
+            # early_stopping needs the validation loss to check if it has decresed, 
+            # and if it has, it will make a checkpoint of the current model
+            epoch_duration = time.time() - epoch_start 
+            with open(self.log_path + "/results.csv", "a") as f:
+                f.write(f"{round(epoch_duration/60, 2)}\n")
+
+            early_stopping(loss_val)
+            
+            print('patience: ', early_stopping.counter, '/', early_stopping.patience)
+            if early_stopping.early_stop:
+                print("\nEarly stopping\n")
+                break
+        
+        end_time = time.time()
+        total_time = end_time - start_time
         print('\nTraining ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print('Total training time: ', round(total_time/60), 'minutes')
+
+
+
+
+
+
+

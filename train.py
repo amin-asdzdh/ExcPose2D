@@ -23,7 +23,6 @@ from utils.datasets import PoseDataset
 # '--checkpoint_path', '/content/drive/My Drive/Colab Notebooks/My Projects/Excavator_Pose_Estimation/logs/20200730_0409/checkpoint_last.pth'
 
 sys.argv = ['train_colab',
-            '--pretrained_weight_path', './pretrained_models/pose_hrnet_w48_384x288.pth', 
             '--dataset_dir', './datasets/FDR_1k',
             '--vis_enabled', 1
             ]
@@ -53,7 +52,8 @@ def main(exp_name,
          seed,
          device,
          dataset_dir,
-         vis_enabled
+         vis_enabled,
+         patience
          ):
 
     # Seeds
@@ -126,7 +126,8 @@ def main(exp_name,
         flip_test_images=False,
         device=device,
         train_dataset_dir = train_dataset_dir,
-        val_dataset_dir = val_dataset_dir
+        val_dataset_dir = val_dataset_dir,
+        patience = patience
     )
 
     train.run()
@@ -139,7 +140,7 @@ if __name__ == '__main__':
                         type=str, default=str(datetime.now().strftime("%Y%m%d_%H%M")))
     parser.add_argument("--epochs", "-e", help="number of epochs", type=int, default=5)
     parser.add_argument("--batch_size", "-b", help="batch size", type=int, default=8)
-    parser.add_argument("--num_workers", "-w", help="number of DataLoader workers", type=int, default=4)
+    parser.add_argument("--num_workers", "-w", help="number of DataLoader workers", type=int, default=1)
     parser.add_argument("--lr", "-l", help="initial learning rate", type=float, default=0.001)
     parser.add_argument("--disable_lr_decay", help="disable learning rate decay", action="store_true")
     parser.add_argument("--lr_decay_steps", help="learning rate decay steps", type=str, default="(170, 200)")
@@ -151,7 +152,7 @@ if __name__ == '__main__':
     parser.add_argument("--nesterov", help="enable nesterov", action="store_true")
     parser.add_argument("--pretrained_weight_path", "-p",
                         help="pre-trained weight path. Weights will be loaded before training starts.",
-                        type=str, default=None)
+                        type=str, default='./pretrained_models/pose_hrnet_w48_384x288.pth')
     parser.add_argument("--checkpoint_path", "-c",
                         help="previous checkpoint path. Checkpoint will be loaded before training starts. It includes "
                              "the model, the optimizer, the epoch, and other parameters.",
@@ -168,6 +169,7 @@ if __name__ == '__main__':
     parser.add_argument("--device", "-d", help="device", type=str, default=None)
     parser.add_argument("--dataset_dir", type=str, default=None)
     parser.add_argument("--vis_enabled", type=str, default='False')
+    parser.add_argument("--patience", help="early stopping patience", type=int, default=10)
     
 
     args = parser.parse_args()
