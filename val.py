@@ -16,7 +16,7 @@ from utils.datasets import PoseDataset
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='./datasets/eval/EvalSet1_384', help='./path/to/dataset')
+    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet1', help='./path/to/dataset')
     parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--device', type=str, default=None, help='device')
