@@ -20,6 +20,7 @@ def parse_opt():
     parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--device', type=str, default=None, help='device')
+    parser.add_argument('--pck_thr', type=float, default=0.05, help='pck threshold')
     opt = parser.parse_args()
     return opt
 
@@ -27,6 +28,7 @@ def run(dataset,
         weights,
         batch_size,
         device,
+        pck_thr,
         num_workers=1):
 
     # set device and load model
@@ -73,7 +75,7 @@ def run(dataset,
             loss = loss_fn(output, target, target_weight)
 
             # calculation accuracy
-            accs, avg_acc, cnt, joints_preds, joints_targets = ds.evaluate_accuracy(output, target)
+            accs, avg_acc, cnt, joints_preds, joints_targets = ds.evaluate_accuracy(output, target, thr=pck_thr)
 
             loss_all.append(loss)
             acc_all.append(avg_acc)
