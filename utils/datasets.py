@@ -14,9 +14,9 @@ sys.path.append(FILE.parents[1].as_posix()) # add ExcPose2D/ to path
 
 from misc.transforms import Rescale
 from misc.transforms import Rotate_90_CC
-from misc.utils import evaluate_pck_accuracy
 from misc.helper_functions import denormalize_image
-
+# from misc.utils import evaluate_pck_accuracy # depriaced (verify and remove for train.py)
+from utils.metrics import evaluate_pck_accuracy
 
 class PoseDataset(Dataset):
   """
