@@ -55,7 +55,8 @@ def run(dataset,
     # load dataset and dataloader
     ds = PoseDataset(dataset_dir=dataset, is_train=False, vis_enabled='False')
     dataloader = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers = num_workers)
-    print('Dataset length : ', len(dataloader)*batch_size)
+    print('batch_size: ', batch_size)
+    print('dataset length : ', len(dataloader)*batch_size)
 
     # initialize variables 
     loss_all = []
