@@ -16,7 +16,7 @@ from utils.datasets import PoseDataset
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet1', help='./path/to/dataset')
+    parser.add_argument('--dataset', type=str, default='./datasets/eval/EvalSet1_384', help='./path/to/dataset')
     parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--device', type=str, default=None, help='device')
@@ -49,7 +49,7 @@ def run(dataset,
     print("Loading checkpoint ...\n", weights, '\n')
     checkpoint = torch.load(weights, map_location=device)
     epoch = checkpoint['epoch']
-    print('epoch ', epoch)
+    print("Checkpoint's epoch: ", epoch)
     model.load_state_dict(checkpoint['model'])
     
     # load dataset and dataloader
@@ -77,8 +77,8 @@ def run(dataset,
             # calculation accuracy
             accs, avg_acc, cnt, joints_preds, joints_targets = ds.evaluate_accuracy(output, target, thr=pck_thr)
 
-            loss_all.append(loss)
-            acc_all.append(avg_acc)
+            loss_all.append(loss.to('cpu'))
+            acc_all.append(avg_acc.to('cpu'))
     
     mean_loss = np.average(loss_all)
     mean_acc = np.average(acc_all)
