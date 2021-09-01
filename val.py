@@ -2,6 +2,7 @@ import argparse
 import os
 import torch
 import numpy as np
+import pandas as pd
 from datetime import datetime
 from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
@@ -9,6 +10,8 @@ from torch.utils.data.dataloader import DataLoader
 from models.hrnet.hrnet import HRNet
 from utils.loss import JointsMSELoss
 from utils.datasets import PoseDataset
+from misc.utils import get_max_preds
+from utils.metrics import evaluate_pck_accuracy
 
 # !!!!
 # Note: 
@@ -16,13 +19,30 @@ from utils.datasets import PoseDataset
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet1', help='./path/to/dataset')
+    parser.add_argument('--dataset', type=str, default='./datasets/eval/EvalSet2_440', help='./path/to/dataset')
     parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--device', type=str, default=None, help='device')
-    parser.add_argument('--pck_thr', type=float, default=0.05, help='pck threshold')
+    parser.add_argument('--pck_thr', type=float, default=0.05, help='pck threshold as a ratio of img diag')
     opt = parser.parse_args()
     return opt
+
+
+def _calc_dists(preds, target, normalize):
+    preds = preds.type(torch.float32)     # pred joint coords
+    target = target.type(torch.float32)   # target joint coords
+    dists = torch.zeros((preds.shape[1], preds.shape[0])).to(preds.device)
+    for n in range(preds.shape[0]):
+        for c in range(preds.shape[1]):
+            if target[n, c, 0] > 1 and target[n, c, 1] > 1:
+                normed_preds = preds[n, c, :] / normalize[n]
+                normed_targets = target[n, c, :] / normalize[n]
+                # # dists[c, n] = np.linalg.norm(normed_preds - normed_targets)
+                dists[c, n] = torch.norm(normed_preds - normed_targets)
+            else:
+                dists[c, n] = -1
+    return dists
+
 
 def run(dataset,
         weights,
@@ -61,6 +81,9 @@ def run(dataset,
     # initialize variables 
     loss_all = []
     acc_all = []
+    NE_all = []
+    
+    results_df = pd.DataFrame(columns=['MSEloss', 'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NEavg'])
     
     with torch.no_grad():
         pbar = tqdm(dataloader, desc='Evaluation')
@@ -75,19 +98,24 @@ def run(dataset,
             # calculate loss
             loss = loss_fn(output, target, target_weight)
 
-            # calculation accuracy
-            accs, avg_acc, cnt, joints_preds, joints_targets = ds.evaluate_accuracy(output, target, thr=pck_thr)
-
+            # calculation accuracy (pck)
+            accs, avg_acc, cnt, joints_preds, joints_targets, NEs = evaluate_pck_accuracy(output, target, thr=pck_thr)
+            
             loss_all.append(loss.to('cpu'))
             acc_all.append(avg_acc.to('cpu'))
+            NE_all.append(torch.mean(NEs).cpu().numpy())
+
     
     mean_loss = np.average(loss_all)
-    mean_acc = np.average(acc_all)
+    mean_acc = round(np.average(acc_all), 4)
+    NEavg = round(np.average(NE_all), 4)
 
     print('mean_loss: ', mean_loss)
-    print('mean_acc :', mean_acc)
+    print(f'PCK@{pck_thr}: {mean_acc}')
+    print(f'NEavg: {NEavg}')
 
     print('\nTest ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print('tests')
 
     
 def main(opt):
