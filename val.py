@@ -82,8 +82,7 @@ def run(dataset,
     loss_all = []
     acc_all = []
     NE_all = []
-    
-    results_df = pd.DataFrame(columns=['MSEloss', 'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NEavg'])
+    results = []
     
     with torch.no_grad():
         pbar = tqdm(dataloader, desc='Evaluation')
@@ -104,19 +103,28 @@ def run(dataset,
             loss_all.append(loss.to('cpu'))
             acc_all.append(avg_acc.to('cpu'))
             NE_all.append(torch.mean(NEs).cpu().numpy())
-
+            NEs = NEs.cpu().numpy()
+            results.append([joints_data['imgId'].pop(), loss.to('cpu').item(), NEs[0].item(), NEs[1].item(), NEs[2].item(), NEs[3].item(), NEs[4].item(), NEs[5].item(), np.mean(NEs)])
     
+    results_df_cols = ['imgId', 'MSEloss', 'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NEavg']
+    results_df = pd.DataFrame(results, columns=results_df_cols)
     mean_loss = np.average(loss_all)
     mean_acc = round(np.average(acc_all), 4)
     NEavg = round(np.average(NE_all), 4)
 
+    # save results
+    log_path = os.path.join(os.getcwd(), 'logs', 'eval_results', datetime.now().strftime("%Y%m%d_%H%M%S"))
+    os.makedirs(log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
+    parameters = [str(vars(opt))]
+    with open(os.path.join(log_path, 'parameters.txt'), 'w') as fd:
+        fd.writelines(parameters)
+
+    results_df.to_csv(os.path.join(log_path, 'results.csv'))
     print('mean_loss: ', mean_loss)
     print(f'PCK@{pck_thr}: {mean_acc}')
     print(f'NEavg: {NEavg}')
 
     print('\nTest ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    print('tests')
-
     
 def main(opt):
     run(**vars(opt))
