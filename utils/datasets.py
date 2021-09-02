@@ -152,7 +152,7 @@ class PoseDataset(Dataset):
       if hm_type is not None and thr is not None:
           accs, avg_acc, cnt, joints_preds, joints_target = evaluate_pck_accuracy(output, target, hm_type, thr)
       else:
-          accs, avg_acc, cnt, joints_preds, joints_target = evaluate_pck_accuracy(output, target)
+          accs, avg_acc, cnt, joints_preds, joints_target, _ = evaluate_pck_accuracy(output, target)
    
       return accs, avg_acc, cnt, joints_preds, joints_target 
 
