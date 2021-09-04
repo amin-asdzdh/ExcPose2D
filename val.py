@@ -19,7 +19,7 @@ from utils.metrics import evaluate_pck_accuracy
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='./datasets/eval/EvalSet2_440', help='./path/to/dataset')
+    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet_test', help='./path/to/dataset')
     parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--device', type=str, default=None, help='device')
@@ -42,6 +42,40 @@ def _calc_dists(preds, target, normalize):
             else:
                 dists[c, n] = -1
     return dists
+
+
+def run2(dataset,
+        weights,
+        batch_size,
+        device,
+        pck_thr,
+        num_workers=1):
+
+    # set device and load model
+    if device is None:
+        if torch.cuda.is_available():
+            device = torch.device('cuda:0')
+        else:
+            device = torch.device('cpu')
+    print('device: ', device)
+
+    model = HRNet(c=48, nof_joints=6, bn_momentum=0.1).to(device)
+    model.eval()
+
+    # define loss
+    loss_fn = JointsMSELoss().to(device)
+
+    files = os.listdir('./experiments/archived')
+    with open(os.path.join('./experiments/archived/', 'epochs.txt'), 'w') as fd:
+        fd.writelines('checkpoint' + ', ' + 'epoch' + '\n')
+    for file in files:
+        # load checkpoint
+        print("Loading checkpoint ...\n", file)
+        checkpoint = torch.load(os.path.join('./experiments/archived', file), map_location=device)
+        epoch = checkpoint['epoch']
+        print("Checkpoint's epoch: ", epoch, '\n')
+        with open(os.path.join('./experiments/archived/', 'epochs.txt'), 'w') as fd:
+            fd.writelines(str(os.path.join('./experiments/archived', file)) + ', ' + str(epoch) + '\n')
 
 
 def run(dataset,
@@ -105,6 +139,7 @@ def run(dataset,
             NE_all.append(torch.mean(NEs).cpu().numpy())
             NEs = NEs.cpu().numpy()
             results.append([joints_data['imgId'].pop(), loss.to('cpu').item(), NEs[0].item(), NEs[1].item(), NEs[2].item(), NEs[3].item(), NEs[4].item(), NEs[5].item(), np.mean(NEs)])
+            break
     
     results_df_cols = ['imgId', 'MSEloss', 'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NEavg']
     results_df = pd.DataFrame(results, columns=results_df_cols)
@@ -127,7 +162,8 @@ def run(dataset,
     print('\nTest ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     
 def main(opt):
-    run(**vars(opt))
+    #run(**vars(opt))
+    run2(**vars(opt))
 
 if __name__ == "__main__":
     opt = parse_opt()
