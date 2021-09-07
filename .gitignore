@@ -29,6 +29,7 @@
 /pretrained_models
 /temp
 /data
+/analysis
 
 # ignore smux log files e.g. smux-7626917.err
 *.err
