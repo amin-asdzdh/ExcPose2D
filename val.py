@@ -131,7 +131,7 @@ def run(dataset,
     NEavg = round(np.average(NE_all), 4)
 
     # save results
-    log_path = os.path.join(os.getcwd(), 'logs', 'val', datetime.now().strftime("%Y%m%d_%H%M%S"))
+    log_path = os.path.join(os.getcwd(), 'runs', 'val', datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
 
     with open(os.path.join(log_path, 'parameters.json'), 'w') as f:
