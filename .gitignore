@@ -25,7 +25,7 @@
 # ignore contents of experiments folder
 /datasets
 /weights
-/logs
+/runs
 /pretrained_models
 /temp
 /data
