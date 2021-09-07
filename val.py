@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
@@ -74,8 +75,8 @@ def run(dataset,
     loss_all = []
     acc_all = []
     NE_all = []
+    preds_all = []
     results = []
-    
     with torch.no_grad():
         pbar = tqdm(dataloader, desc='Evaluation')
         for step, (image, target, target_weight, joints_data) in enumerate(pbar):
@@ -91,27 +92,53 @@ def run(dataset,
 
             # calculation accuracy (pck)
             accs, avg_acc, cnt, joints_preds, joints_targets, NEs = evaluate_pck_accuracy(output, target, thr=pck_thr)
+
+            # prepare preds for saving in csv
+            joints_preds = joints_preds.squeeze().cpu().numpy()
+            joints_targets = joints_targets.squeeze().cpu().numpy()
+            target_weight = target_weight.squeeze().cpu().numpy()
             
+            preds = []
+            preds.append(joints_data['imgId'][0])
+            for i in range(6):
+                preds.append(joints_targets[i][0])
+                preds.append(joints_targets[i][1])
+                preds.append(target_weight[i])
+
+            for i in range(6):
+                preds.append(joints_preds[i][0])
+                preds.append(joints_preds[i][1])
+
+            valid_NEs = [ne for ne in NEs if ne != -1]
+            sampleNE = sum(valid_NEs)/len(valid_NEs)
+            sampleNE = sampleNE.to('cpu').numpy()
+
+            preds_all.append(preds)
             loss_all.append(loss.to('cpu'))
             acc_all.append(avg_acc.to('cpu'))
-            NE_all.append(torch.mean(NEs).cpu().numpy())
-            NEs = NEs.cpu().numpy()
-            results.append([joints_data['imgId'].pop(), loss.to('cpu').item(), NEs[0].item(), NEs[1].item(), NEs[2].item(), NEs[3].item(), NEs[4].item(), NEs[5].item(), np.mean(NEs)])
+            NE_all.append(sampleNE)
+            NEs = NEs.cpu().numpy()            
+            results.append([joints_data['imgId'][0], loss.to('cpu').item(), NEs[0].item(), NEs[1].item(), NEs[2].item(), NEs[3].item(), NEs[4].item(), NEs[5].item(), sampleNE[0]])
     
+    preds_cols = ['imgId', 'x1', 'y1', 'v1', 'x2', 'y2', 'v2', 'x3', 'y3', 'v3', 'x4', 'y4', 'v4', 'x5', 'y5', 'v5', 'x6', 'y6', 'v6', 
+                  'x1_pred', 'y1_pred', 'x2_pred', 'y2_pred', 'x3_pred', 'y3_pred', 'x4_pred', 'y4_pred', 'x5_pred', 'y5_pred', 'x6_pred', 'y6_pred']
+    preds_df = pd.DataFrame(preds_all, columns=preds_cols)
     results_df_cols = ['imgId', 'MSEloss', 'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NEavg']
     results_df = pd.DataFrame(results, columns=results_df_cols)
     mean_loss = np.average(loss_all)
     mean_acc = round(np.average(acc_all), 4)
+
     NEavg = round(np.average(NE_all), 4)
 
     # save results
-    log_path = os.path.join(os.getcwd(), 'logs', 'eval_results', datetime.now().strftime("%Y%m%d_%H%M%S"))
+    log_path = os.path.join(os.getcwd(), 'logs', 'val', datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
     parameters = [str(vars(opt))]
     with open(os.path.join(log_path, 'parameters.txt'), 'w') as fd:
         fd.writelines(parameters)
 
     results_df.to_csv(os.path.join(log_path, 'results.csv'))
+    preds_df.to_csv(os.path.join(log_path, 'preds.csv'))
     print('mean_loss: ', mean_loss)
     print(f'PCK@{pck_thr}: {mean_acc}')
     print(f'NEavg: {NEavg}')
