@@ -2,6 +2,9 @@
 *.png
 *.jpg
 
+# video files
+*.mp4
+
 # ignore powerpoint file extensions
 *.pptx
 
@@ -25,6 +28,7 @@
 /logs
 /pretrained_models
 /temp
+/data
 
 # ignore smux log files e.g. smux-7626917.err
 *.err
