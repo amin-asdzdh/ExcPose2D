@@ -17,15 +17,7 @@ from utils.metrics import evaluate_pck_accuracy
 # Note: 
 # parameters passed to the model are curretly hardcoded (need to add as argument)
 
-def parse_opt():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet_test', help='./path/to/dataset')
-    parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
-    parser.add_argument('--batch_size', type=int, default=1, help='batch size')
-    parser.add_argument('--device', type=str, default=None, help='device')
-    parser.add_argument('--pck_thr', type=float, default=0.05, help='pck threshold as a ratio of img diag')
-    opt = parser.parse_args()
-    return opt
+
 
 
 def _calc_dists(preds, target, normalize):
@@ -125,7 +117,17 @@ def run(dataset,
     print(f'NEavg: {NEavg}')
 
     print('\nTest ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    
+
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, default='./datasets/eval/RealSet_test', help='./path/to/dataset')
+    parser.add_argument('--weights', type=str, default=None, help='./path/to/checkpoint.pth')
+    parser.add_argument('--batch_size', type=int, default=1, help='batch size')
+    parser.add_argument('--device', type=str, default=None, help='device')
+    parser.add_argument('--pck_thr', type=float, default=0.05, help='pck threshold as a ratio of img diag')
+    opt = parser.parse_args()
+    return opt
+
 def main(opt):
     run(**vars(opt))
 
