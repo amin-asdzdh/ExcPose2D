@@ -1,6 +1,7 @@
 import argparse
 import os
 import torch
+import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -127,12 +128,14 @@ def run(dataset,
     results_df = pd.DataFrame(results, columns=results_df_cols)
     mean_loss = np.average(loss_all)
     mean_acc = round(np.average(acc_all), 4)
-
     NEavg = round(np.average(NE_all), 4)
 
     # save results
     log_path = os.path.join(os.getcwd(), 'logs', 'val', datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(log_path, 0o755, exist_ok=False)  # exist_ok=False to avoid overwriting
+
+    with open(os.path.join(log_path, 'parameters.json'), 'w') as f:
+        json.dump(vars(opt), f,  indent=4)
     parameters = [str(vars(opt))]
     with open(os.path.join(log_path, 'parameters.txt'), 'w') as fd:
         fd.writelines(parameters)
