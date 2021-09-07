@@ -5,6 +5,8 @@
 # video files
 *.mp4
 
+# ignore bulk_tasks.py
+bulk_tasks.py
 # ignore powerpoint file extensions
 *.pptx
 
