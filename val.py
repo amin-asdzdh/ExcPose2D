@@ -14,6 +14,7 @@ from utils.loss import JointsMSELoss
 from utils.datasets import PoseDataset
 from misc.utils import get_max_preds
 from utils.metrics import evaluate_pck_accuracy
+from misc.results_postprocessing import get_results_summary
 
 # !!!!
 # Note: 
@@ -145,6 +146,8 @@ def run(dataset,
     print('mean_loss: ', mean_loss)
     print(f'PCK@{pck_thr}: {mean_acc}')
     print(f'NEavg: {NEavg}')
+
+    get_results_summary(log_path)
 
     print('\nTest ended @ %s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
