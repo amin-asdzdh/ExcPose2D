@@ -63,7 +63,7 @@ class PoseDataset(Dataset):
     self.imgIds = self.annotations['image_id']
 
     # load and format annotations for each image
-    print('\nloading annotations from: ', self.labels_path)
+    print('\nloading annotations from: ', Path(self.labels_path))
     self.data = []
     for imgId in tqdm(self.imgIds):
 
