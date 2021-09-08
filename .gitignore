@@ -7,6 +7,7 @@
 
 # ignore bulk_tasks.py
 bulk_tasks.py
+
 # ignore powerpoint file extensions
 *.pptx
 
