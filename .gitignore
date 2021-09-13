@@ -33,6 +33,7 @@ bulk_tasks.py
 /temp
 /data
 /analysis
+/logs
 
 # ignore smux log files e.g. smux-7626917.err
 *.err
