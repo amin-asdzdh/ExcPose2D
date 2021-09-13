@@ -81,7 +81,6 @@ class PoseDataset(Dataset):
       
       # use visiblity status labels if enabled
       if self.vis_enabled == 'True':
-        print('it is actually true')
         v = sample_labels[['body_end_v',
                            'cab_boom_v',
                            'boom_arm_v',
