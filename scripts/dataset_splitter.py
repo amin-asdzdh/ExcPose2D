@@ -59,7 +59,7 @@ def split(source_dir, target_dir, split_size=0.2):
 
 if __name__ == "__main__":
     
-    source_dir = os.path.join(os.getcwd(), 'datasets', 'experiment_3', 'RealSet_train_augmented_6020')
-    target_dir = os.path.join(os.getcwd(), 'datasets', 'experiment_3', 'RealSet_train_augmented_6020_split')
+    source_dir = os.path.join('E:', os.sep, 'My Datasets', 'Excavator_Pose_2D', 'AutCon2020', 'Archive', 'Experiment_2', 'prepared_datasets', 'Synthetic_78750')
+    target_dir = os.path.join('E:', os.sep, 'My Datasets', 'Excavator_Pose_2D', 'AutCon2020', 'Archive', 'Experiment_2', 'prepared_datasets', 'Synthetic_78750_train')
 
     split(source_dir, target_dir, split_size=0.2)
