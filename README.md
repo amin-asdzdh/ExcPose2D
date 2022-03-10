@@ -1,5 +1,9 @@
 # Documentation
 
+![](resources/demo.GIF)
+
+
+
 ## Install
 
 ```
