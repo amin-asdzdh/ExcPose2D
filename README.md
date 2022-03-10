@@ -1,6 +1,6 @@
 # Documentation
 
-![](resources/demo.GIF)
+![](resources/demo.gif)
 
 
 
